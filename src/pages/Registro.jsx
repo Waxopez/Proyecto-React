@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { registerUser } from "../utils/auth"; 
 
 export default function Registro() {
   const [form, setForm] = useState({ 
@@ -16,44 +17,49 @@ export default function Registro() {
     [e.target.id]: e.target.value 
   }));
 
-  const handleSubmit = async (e) => { // Agrega async
+  const handleSubmit = async (e) => { 
     e.preventDefault();
     
-    if (!form.nombre || !form.correo || !form.perrito || !form.terminos) {
-      alert("Por favor completa los campos obligatorios.");
+    // 1. VALIDACIONES (Usando las variables correctas del registro)
+    if (!form.registerName || !form.registerEmail || !form.registerPassword || !form.registerConfirmPassword) {
+      setMsg({ type: "danger", text: "Completa todos los campos." });
       return;
     }
-    
-    // Preparamos el objeto tal cual como lo espera Java (Solicitud.java)
-    const datosParaJava = {
-        nombreSolicitante: form.nombre,
-        email: form.correo,
-        telefono: form.telefono,
-        nombreMascota: form.perrito,
-        edadSolicitante: form.edad,
-        preferencia: form.preferencia,
-        mensaje: form.mensaje
-    };
 
-    // Enviamos al backend
-    const exito = await enviarSolicitud(datosParaJava);
-
-    if (exito) {
-        setSent(true);
-        setTimeout(() => setSent(false), 3000);
-        // Limpiar formulario
-        setForm({
-          nombre: "", correo: "", telefono: "", perrito: "",
-          edad: "", mensaje: "", preferencia: "", terminos: false
-        });
-    } else {
-        alert("Hubo un error al enviar tu solicitud. Intenta más tarde.");
+    if (form.registerPassword.length < 6) {
+      setMsg({ type: "danger", text: "La contraseña debe tener mínimo 6 caracteres." });
+      return;
     }
+
+    if (form.registerPassword !== form.registerConfirmPassword) {
+      setMsg({ type: "danger", text: "Las contraseñas no coinciden." });
+      return;
+    }
+
+    if (!form.registerEmail.includes('@') || !form.registerEmail.includes('.')) {
+      setMsg({ type: "danger", text: "El correo electrónico no es válido." });
+      return;
+    }
+
+    // 2. LLAMADA AL BACKEND (Usando registerUser, NO enviarSolicitud)
+    const res = await registerUser({ 
+      name: form.registerName, 
+      email: form.registerEmail, 
+      password: form.registerPassword 
+    });
+
+    // 3. MANEJO DE RESPUESTA
+    if (!res.ok) {
+      setMsg({ type: "danger", text: res.message });
+      return;
+    }
+
+    setMsg({ type: "success", text: "Registro exitoso. Redirigiendo..." });
+    setTimeout(() => nav("/login"), 1200);
   };
 
   return (
     <div className="d-flex flex-column min-vh-100">
-      {/* Contenido principal que se expande */}
       <div className="flex-grow-1 d-flex align-items-center justify-content-center">
         <section className="container my-5">
           <div className="row justify-content-center">
@@ -61,7 +67,6 @@ export default function Registro() {
               <div className="card shadow border-0 login-card p-4">
                 <h2 className="text-center text-danger fw-bold mb-4">Crear Cuenta</h2>
 
-                {/* Contenedor de mensajes */}
                 {msg && (
                   <div className={`alert alert-${msg.type}`} role="alert">
                     {msg.text}
@@ -134,7 +139,6 @@ export default function Registro() {
         </section>
       </div>
 
-      {/* Footer que siempre está abajo */}
       <footer className="footer text-white text-center p-3 bg-danger mt-auto">
         <p>&copy; 2025 Adopta un Amigo | Todos los derechos reservados</p>
       </footer>
